@@ -71,11 +71,33 @@ io.on('connection', (socket) => {
     if(invitedSocket!==undefined){
       io.to(invitedSocket).emit('joinRoom', ({ roomname:roomName,room_id:roomId,last_time:'',last_message:'' }));
     }
+
+    /*const query = "SELECT locationroom_id FROM rooms WHERE chatroom_id='"+roomId+"' LIMIT 1";
+    connection.query(query, (err,results) => {
+      if (err) throw err;
+      else{
+        results.forEach((result) => {
+          locationroomId = result.locationroom_id
+          if(invitedSocket!==undefined){
+            io.to(invitedSocket).emit('joinRoom', ({ roomname:roomName,room_id:roomId,last_time:'',last_message:'' }));
+            invitedSocket.join(locationroomId);
+            const query3 = "INSERT INTO locationjoins VALUES('"+locationroomId+"', '"+invitedId+"')";
+            connection.query(query3, (err) => {
+              if (err) throw err;
+            });
+          }
+        }); 
+      }
+    });*/
+    
     //io.to(roomId).emit('joinRoom', ({ roomname:roomName,room_id:roomId }));
     const query1 = "INSERT INTO chatjoins VALUES('"+roomId+"', '"+invitedId+"', 0)";
     connection.query(query1, (err) => {
       if (err) throw err;
     });
+
+  
+    
     const query2 = "UPDATE rooms SET members_num=members_num+1 WHERE chatroom_id='"+roomId+"'";
     connection.query(query2, (err) => {
       if (err) throw err;
@@ -108,7 +130,12 @@ io.on('connection', (socket) => {
     connection.query(query2, (err) => {
       if (err) throw err;
     });
+    const query3 = "INSERT INTO locationjoins VALUES('"+locationroomId+"', '"+userId+"')";
+    connection.query(query3, (err) => {
+      if (err) throw err;
+    });
     socket.join(chatroomId);
+    socket.join(locationroomId);
     socket.emit('joinRoom', ({ roomname:roomName,room_id:chatroomId,last_time:'',last_message:''}));
     console.log('Create', userId, roomName);
   });
@@ -135,7 +162,6 @@ io.on('connection', (socket) => {
     const roomId= data.roomId;
     const content= data.content;
     const category= data.category;
-    let sendtime = '';
 
     const query1 = "INSERT INTO chats(chatroom_id, sender_id, contents, category, send_time) VALUES('"+roomId+"', '"+userId+"', '"+content+"','"+category+"', NOW())";
     connection.query(query1, (err) => {
@@ -169,7 +195,7 @@ io.on('connection', (socket) => {
       else{
         results.forEach((result) => {
           io.to(roomId).emit('receivemessage', ({ chatroom_id:roomId, sender_id:userId, contents:content, category:category, nickname:result.nickname}));
-          io.to(roomId).emit('receivemessagee', ({ chatroom_id:roomId, sender_id:userId, contents:content, category:category, nickname:result.nickname}));
+          //io.to(roomId).emit('receivemessagee', ({ chatroom_id:roomId, sender_id:userId, contents:content, category:category, nickname:result.nickname}));
         }); 
       }
     });
@@ -206,14 +232,14 @@ socket.on('askLocationUpdate', (data) => {
 
   // 같은 room_id를 가진 클라이언트에게 위치 정보 전송
   const query = "SELECT user_id FROM locationjoins WHERE locationroom_id = '"+data.locationroomId+"'";
-  console.log(`userId: ${data.userId}, roomId: ${data.locationroomId}`);
+  console.log(`userId: ${data.userId}, roomId: ${data.locationroomId}`); //88
   connection.query(query, (err, results) => {
       if (err) throw err;
       else {
         console.log("Results from database:", results);
           results.forEach((result) => {
             //사용자의 websocket id가 있는지 확인
-            console.log(`User ID: ${result.user_id}, Socket ID: ${users[result.user_id]}`);
+            console.log(`User ID: ${result.user_id}, Socket ID: ${users[result.user_id]}`); //result의 데이터 확인 - 88,99
 
               const userSocket = users[result.user_id];
               if (userSocket && userSocket !== socket.id) {
